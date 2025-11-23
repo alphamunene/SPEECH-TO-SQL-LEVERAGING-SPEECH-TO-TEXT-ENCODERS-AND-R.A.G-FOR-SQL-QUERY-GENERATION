@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech2SQL Support</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #ffffff;
+      color: #333;
+      line-height: 1.6;
+      padding-top: 20px;
+    }
+
+    /* Sidebar */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 220px;
+      padding-top: 20px;
+      background-color: #f8f9fa;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+
+    #sidebar h4 {
+      padding-left: 15px;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 1.1rem;
+    }
+
+    #sidebar a {
+      display: block;
+      padding: 5px 15px;
+      color: #0d6efd;
+      text-decoration: none;
+      margin-bottom: 2px;
+    }
+
+    #sidebar a:hover {
+      text-decoration: underline;
+      background-color: #e9ecef;
+      border-radius: 5px;
+    }
+
+    /* Main content */
+    .content {
+      margin-left: 240px;
+      padding: 20px 30px;
+      max-width: 900px;
+    }
+
+    h1, h2, h3, h4 {
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+
+    code {
+      font-size: 0.9rem;
+    }
+
+    table {
+      width: 100%;
+    }
+
+    th, td {
+      padding: 0.5rem;
+      vertical-align: top;
+    }
+
+    .table thead th {
+      background-color: #f1f1f1;
+    }
+
+    a.anchor-link {
+      text-decoration: none;
+      color: inherit;
+      margin-left: 5px;
+      font-weight: normal;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <h4>Navigation</h4>
+    <a href="#overview">Overview</a>
+    <a href="#requirements">System Requirements</a>
+    <a href="#installation">Installation & Setup</a>
+    <a href="#configuration">Configuration</a>
+    <a href="#usage">Usage Guide</a>
+    <a href="#rag">RAG & LLM</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+    <a href="#best-practices">Best Practices</a>
+    <a href="#faq">FAQ</a>
+    <a href="#contact">Contact & Support</a>
+  </div>
+
+  <div class="content">
+    <h1 id="overview">Speech2SQL – Support Document</h1>
+
+    <h2>Overview</h2>
+    <p><strong>Speech2SQL</strong> is a voice-enabled and text-enabled SQL assistant built using <strong>FastAPI</strong>, <strong>RAG (Retrieval-Augmented Generation)</strong>, <strong>LLMs</strong>, and <strong>Whisper</strong>.</p>
+    <ul>
+      <li>Convert natural language to SQL queries.</li>
+      <li>Upload audio and transcribe speech to text.</li>
+      <li>Connect to multiple database types (SQLite, MySQL, PostgreSQL).</li>
+      <li>Explore database schemas, tables, and sample data.</li>
+      <li>Track query history for auditing or repeat usage.</li>
+    </ul>
+
+    <h2 id="requirements">System Requirements</h2>
+    <ul>
+      <li><strong>CPU:</strong> Quad-core or higher</li>
+      <li><strong>RAM:</strong> ≥8GB recommended</li>
+      <li><strong>Disk:</strong> ≥500MB for models and database files</li>
+      <li>Python 3.11+</li>
+      <li>Pip</li>
+      <li>FFmpeg (required for audio transcription)</li>
+      <li>SQLite / MySQL / PostgreSQL depending on database usage</li>
+    </ul>
+
+    <h2 id="installation">Installation & Setup</h2>
+    <pre><code># Clone the repository
+git clone https://github.com/alphamunene/SPEECH-TO-SQL-LEVERAGING-SPEECH-TO-TEXT-ENCODERS-AND-R.A.G-FOR-SQL-QUERY-GENERATION/tree/feedback/.github
+cd Speech2SQL
+
+# Create virtual environment
+python -m venv venv
+# Activate
+venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/macOS
+
+# Install dependencies
+pip install -r requirements.txt
+pip install soundfile pydub ffmpeg-python
+</code></pre>
+
+    <h3>FFmpeg setup:</h3>
+    <ul>
+      <li>Windows: Download <a href="https://www.gyan.dev/ffmpeg/builds/" target="_blank">Gyan.dev builds</a> or <a href="https://github.com/BtbN/FFmpeg-Builds/releases" target="_blank">BtbN builds</a> and add to PATH.</li>
+      <li>Linux: <code>sudo apt install ffmpeg</code></li>
+      <li>macOS: <code>brew install ffmpeg</code></li>
+    </ul>
+
+    <h2 id="configuration">Configuration</h2>
+    <ul>
+      <li>Admin password: Default is <code>admin</code> in <code>main.py</code></li>
+      <li>Database directory: <code>rag_store/databases/</code></li>
+      <li>FAISS index: <code>rag_store/schema_index.faiss</code></li>
+      <li>Schema pickle file: <code>rag_store/schemas.pkl</code></li>
+    </ul>
+
+    <h2 id="usage">Usage Guide</h2>
+
+    <h3>Natural Language Query</h3>
+    <pre><code>POST /api/query_nl
+Content-Type: application/json
+
+{
+    "query": "Show all sales greater than 500 last month"
+}</code></pre>
+
+    <h3>Audio Upload</h3>
+    <pre><code>POST /api/upload_audio
+Content-Type: multipart/form-data
+file=@audio_sample.wav</code></pre>
+    <p>Response example:</p>
+    <pre><code>{
+  "transcript": "Show all sales greater than 500 last month"
+}</code></pre>
+
+    <h3>Database Upload</h3>
+    <pre><code>POST /api/upload_db
+Header: x-admin-auth: admin
+File: sales.db</code></pre>
+    <p>Only <code>.db</code> or <code>.sqlite</code> files allowed. Automatically connects and rebuilds FAISS schema index.</p>
+
+    <h3>Query History</h3>
+    <ul>
+      <li>View history: <code>/api/history?page=1&limit=10</code></li>
+      <li>Delete single entry: <code>/api/history/{history_id}</code></li>
+      <li>Delete all history: <code>/api/history</code> (DELETE)</li>
+    </ul>
+
+    <h2 id="rag">RAG & LLM Functionality</h2>
+    <ul>
+      <li>Schema embedding: All table/column names are embedded using <code>SentenceTransformer</code>.</li>
+      <li>FAISS index: Fast retrieval of relevant schema context.</li>
+      <li>LLM SQL generation: Fine-tuned Seq2Seq model generates SQL using RAG context.</li>
+      <li>Fallback: If table detection fails, LLM tries to generate SQL with best-guess.</li>
+    </ul>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Issue</th>
+          <th>Solution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ModuleNotFoundError: No module named 'soundfile'</td>
+          <td><code>pip install soundfile</code></td>
+        </tr>
+        <tr>
+          <td>FFmpeg not found</td>
+          <td>Install FFmpeg and add to PATH</td>
+        </tr>
+        <tr>
+          <td>OperationalError: table already exists</td>
+          <td>Drop existing tables or use a new database file</td>
+        </tr>
+        <tr>
+          <td>422 Unprocessable Entity</td>
+          <td>Check JSON payload structure and required fields</td>
+        </tr>
+        <tr>
+          <td>Audio transcription fails</td>
+          <td>Ensure file format is supported (.wav, .mp3) and FFmpeg works</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="best-practices">Best Practices</h2>
+    <ul>
+      <li>Use a virtual environment.</li>
+      <li>Keep FAISS index updated after database changes (<code>/api/rebuild_schema_index</code>).</li>
+      <li>Use short, clear natural language queries for better LLM SQL generation.</li>
+      <li>Backup <code>history.db</code> and uploaded databases regularly.</li>
+      <li>Change admin password for production.</li>
+    </ul>
+
+    <h2 id="faq">FAQ</h2>
+    <ul>
+      <li><strong>Can I use multiple databases at once?</strong> Yes, connect multiple databases sequentially. Each upload stores the file locally and builds a separate schema index.</li>
+      <li><strong>Which LLM should I use?</strong> Fine-tuned seq2seq model trained on SQL generation tasks. Supports HuggingFace <code>AutoModelForSeq2SeqLM</code>.</li>
+      <li><strong>Does Whisper support long audio files?</strong> Yes, but large files may need chunking for better performance.</li>
+    </ul>
+
+    <h2 id="contact">Contact & Support</h2>
+    <ul>
+      <li>GitHub Issues: <a href="https://github.com/alphamunene/SPEECH-TO-SQL-LEVERAGING-SPEECH-TO-TEXT-ENCODERS-AND-R.A.G-FOR-SQL-QUERY-GENERATION/tree/feedback/.github" target="_blank">https://github.com/alphamunene/SPEECH-TO-SQL-LEVERAGING-SPEECH-TO-TEXT-ENCODERS-AND-R.A.G-FOR-SQL-QUERY-GENERATION/tree/feedback/.github</a></li>
+      <li>Email: alphamuneeno@strathmore.edu</li>
+    </ul>
+  </div>
+
+  <!-- Back to Home Button -->
+<a href="http://127.0.0.1:8000/#" class="btn btn-primary" style="position: fixed; top: 15px; right: 20px; z-index: 1000;">
+  Back to Home
+</a>
+
+</body>
+</html>
