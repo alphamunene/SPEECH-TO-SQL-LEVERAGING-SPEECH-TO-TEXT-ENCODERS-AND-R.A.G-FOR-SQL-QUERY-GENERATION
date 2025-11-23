@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Speech2SQL</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Charts & DataTables -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.1.min.js"></script>
+
+  <style>
+    body { background: var(--bg-color,#fff); font-family:"Segoe UI",Arial,sans-serif; margin:0; padding-top:90px; color:var(--text-color,#222); transition: all 0.3s; }
+    .navbar { background:linear-gradient(90deg,#011f42 0%,#012a63 100%); box-shadow:0 2px 8px rgba(0,0,0,0.3); height:80px; }
+    .navbar-brand { color:#fff!important; font-weight:700; font-size:1.5rem; letter-spacing:0.5px; }
+    .nav-link { position:relative; color:#f5f5f5!important; font-weight:500; margin-right:18px; transition:all 0.3s ease-in-out; }
+    .nav-link::after { content:""; position:absolute; left:0; bottom:-3px; width:0; height:2px; background:#f1f107; transition: width 0.3s ease-in-out; }
+    .nav-link:hover { color:#f1f107!important; transform: scale(1.05); }
+    .nav-link:hover::after { width:100%; }
+    .navbar-toggler { border-color:#fff; }
+    .navbar-toggler-icon { filter:invert(100%); }
+    .navbar-collapse { background-color:#011f42; }
+    .container { max-width:1000px; margin:auto; padding:20px; }
+    .tabs { display:flex; gap:20px; justify-content:center; margin-bottom:20px; }
+    .tab { cursor:pointer; padding:10px 20px; border-radius:5px; background:#eee; font-weight:500; transition:0.3s; }
+    .tab.active { background:#011f42; color:#fff; }
+    .card { border:1px solid #ccc; border-radius:8px; padding:15px; margin-bottom:20px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+    textarea { width:100%; height:80px; padding:10px; border-radius:5px; border:1px solid #ccc; resize: vertical; }
+    .controls { margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    button { padding:8px 12px; border:none; border-radius:5px; cursor:pointer; }
+    #queryBtn{background:#011f42;color:#fff;} #micBtn{background:#28a745;color:#fff;} #stopMicBtn{background:#dc3545;color:#fff;} #uploadBtn{background:#011f42;color:#fff;}
+    #dbSection,#helpSection,#historyPage{display:none;}
+    table{border-collapse:collapse;margin-top:10px;width:100%;} th,td{border:1px solid #ccc;padding:5px;text-align:left;}
+    #micStatus{font-style:italic;color:#555;}
+    body.dark-mode { --bg-color:#2e2d2d; --text-color:#f0f0f0; background: var(--bg-color); color: var(--text-color); }
+    body.dark-mode .card { background:#a9a8a8; border-color:#333; }
+    body.dark-mode .nav-link { color:#ddd!important; } body.dark-mode .nav-link:hover { color:#f1f107!important; }
+    body.dark-mode table, body.dark-mode th, body.dark-mode td { border-color:#555; }
+    footer { text-align:center; padding:20px; font-size:0.9rem; color:#18067e; border-top:1px solid #ddd; margin-top:30px; line-height:1.4; }
+    footer a{color:#011f42;text-decoration:none;} body.dark-mode footer a{color:#f1f107;}
+    
+  
+  .btn-dark {
+    background-color: #011f42 !important; /* dark blue */
+    color: #fff !important;
+    border: 1px solid #011f42;
+  }
+
+  .btn-dark:hover {
+    background-color: #2b6fec !important; /* slightly lighter on hover */
+    border-color: #012a63;
+    color: #fff;
+  }
+
+
+  </style>
+</head>
+
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg fixed-top">
+    <div class="container-fluid px-4">
+      <div class="dropdown me-3">
+        <a href="#" class="d-flex align-items-center link-light text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          <span style="font-size:1.5rem;">☰</span>
+        </a>
+        <ul class="dropdown-menu">
+          <li class="dropdown-header text-muted">👤 Logged in as</li>
+          <li><span class="dropdown-item-text fw-bold" id="userEmailMenu"></span></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="http://localhost/SPEECH2SQL_fixed_fixed/templates/login.php" id="logoutBtn">Logout</a></li>
+        </ul>
+      </div>
+      <a class="navbar-brand" href="#">🎙️ Speech2SQL</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"> 
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav align-items-lg-center text-center">
+          <li class="nav-item"><a class="nav-link" href="#" id="navQuery">Query</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="navhist">History</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="navDB">Database</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" id="navHelp">Help</a></li>
+          <li class="nav-item ms-3"><button id="themeToggle" class="btn btn-sm btn-warning">🌙 Dark Mode</button></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Tabs -->
+    <div class="tabs">
+      <div id="tabQuery" class="tab active">Query</div>
+      <div id="tabDB" class="tab">Database</div>
+    </div>
+
+    <!-- QUERY SECTION -->
+    <main id="querySection">
+      <section class="card">
+        <h2>Speak or Type Your Question</h2>
+        <textarea id="nlquery" placeholder="e.g., List all employees in Marketing"></textarea>
+        <div class="controls">
+          <button id="queryBtn">Send Query</button>
+          <button id="micBtn">🎤 Start Mic</button>
+          <button id="stopMicBtn">⛔ Stop Mic</button>
+          <span id="micStatus"></span>
+          <input type="file" id="audioFile" accept="audio/*">
+          <button id="uploadBtn">Transcribe Audio</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Results</h2>
+        <pre id="sql"></pre>
+
+        <div class="row g-2 mb-2">
+          <div class="col-md-3"><input id="searchInput" class="form-control" placeholder="Search results..."></div>
+          <div class="col-md-3"><select id="sortSelect" class="form-select"><option value="">Sort by</option></select></div>
+          <div class="col-md-2"><select id="filterSelect" class="form-select"><option value="">Filter column</option></select></div>
+          <div class="col-md-2"><input id="filterValue" class="form-control" placeholder="Filter value"></div>
+          <div class="col-md-2"><button id="applyFilterBtn" class="btn btn-dark w-100">Apply Filter</button></div>
+        </div>
+
+        <div class="mb-2">
+          <button id="exportCsvBtn" class="btn btn-dark me-2">Export CSV</button>
+          <button id="barChartBtn" class="btn btn-dark me-1">Bar</button>
+          <button id="lineChartBtn" class="btn btn-dark me-1">Line</button>
+          <button id="scatterChartBtn" class="btn btn-dark me-1">Scatter</button>
+          <button class="btn btn-warning ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#moreAnalytics" aria-expanded="false">More Analysis</button>
+        </div>
+
+        <div class="collapse" id="moreAnalytics">
+          <div class="card card-body mb-3">
+            <div class="row">
+              <div class="col-md-8">
+                <table id="resultTable" class="display nowrap" style="width:100%"></table>
+                <canvas id="chart" style="max-width:100%; height:400px; margin-top:20px;"></canvas>
+                <canvas id="pieChart" style="max-width:100%; height:300px; margin-top:20px;"></canvas>
+                <div id="heatmap" style="width:100%; height:400px; margin-top:20px;"></div>
+              </div>
+              <div class="col-md-4">
+                <div id="summaryStats" class="p-3" style="background:#f8f9fa; border-radius:6px; height:100%; overflow-y:auto;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button class="btn btn-dark mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#schemaCollapse" aria-expanded="false">🗄️ Show Schema</button>
+          <div class="collapse" id="schemaCollapse"><div class="card card-body" id="schemaContent"></div></div>
+
+          <button id="showSqlBtn" class="btn btn-secondary mb-2" type="button" 
+        data-bs-toggle="collapse" data-bs-target="#sqlCollapse" aria-expanded="false" aria-controls="sqlCollapse">
+  💻 Show Generated SQL
+</button>
+<div class="collapse" id="sqlCollapse">
+  <div class="card card-body">
+    <pre id="generatedSQL">SQL will appear here...</pre>
+  </div>
+</div>
+
+
+        </div>
+      </section>
+    </main>
+
+    <!-- DATABASE SECTION -->
+    <main id="dbSection">
+      <section class="card text-center">
+        <h2>🗄️ Database Operations</h2>
+        <button id="showDbOptionsBtn" class="btn btn-dark mb-3">🔗 Connect Database</button>
+        <div id="dbOptions" style="display:none;">
+          <p>Upload a database file or connect via connection string:</p>
+          <div class="mb-3"><input type="file" id="dbFile" accept=".db,.sqlite" class="form-control"></div>
+          <button id="uploadDbBtn" class="btn btn-dark mb-2 w-100">📤 Upload DB</button>
+          <div class="mt-3">
+            <input type="text" id="dbConn" placeholder="e.g., postgresql://user:pass@host/dbname" class="form-control mb-2">
+            <button id="connectDbBtn" class="btn btn-dark w-100">🔌 Connect DB</button>
+          </div>
+          <p id="dbStatus" class="mt-3 text-muted"></p>
+          <div id="tableList" class="mt-3"></div>
+        </div>
+        <button id="showTablesBtn" class="btn btn-dark mb-3">📊 View Tables</button>
+      </section>
+    </main>
+
+    <!-- HELP SECTION -->
+    <main id="helpSection">
+      <section class="card text-center">
+        <h2>🆘 Help & Support</h2>
+        <div class="input-group mb-3 mt-3">
+          <span class="input-group-text">🔍</span>
+          <input type="text" id="helpSearch" class="form-control" placeholder="Search help topics...">
+        </div>
+        <button id="showHelpOptionsBtn" class="btn btn-dark mb-3">📚 Show Help Topics</button>
+        <div id="helpOptions" style="display:none; text-align:left;">
+          <p>Select a topic below or search above:</p>
+          <div class="accordion" id="helpAccordion">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpQuery">💬 How to Use the Query Section</button>
+              </h2>
+              <div id="helpQuery" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">Type or speak your question, click <b>Send Query</b>, SQL is generated automatically.</div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpDB">🗄️ Managing the Database</button>
+              </h2>
+              <div id="helpDB" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">Upload SQLite or connect with a database string to explore tables.</div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpVoice">🎤 Using Voice Commands</button>
+              </h2>
+              <div id="helpVoice" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">Start mic to capture voice input; stop mic when done.</div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpTrouble">⚙️ Troubleshooting Common Issues</button>
+              </h2>
+              <div id="helpTrouble" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                <div class="accordion-body">
+                  <ul>
+                    <li>Check microphone permissions</li>
+                    <li>Ensure database file is valid</li>
+                    <li>Backend server must be running</li>
+                    <li>Refresh page if needed</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- HISTORY SECTION -->
+    <main id="historyPage">
+      <section class="card shadow p-3">
+  <h3 class="mb-3">History</h3>
+  <div class="mb-2">
+    <button id="downloadHistoryBtn" class="btn btn-success me-2">📥 Download CSV</button>
+    <button id="deleteHistoryBtn" class="btn btn-danger">🗑️ Clear History</button>
+  </div>
+  <table class="table table-bordered">
+    <thead class="table-dark"><tr><th>#</th><th>Query</th><th>Date</th></tr></thead>
+    <tbody id="historyBody"></tbody>
+  </table>
+</section>
+
+    </main>
+
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Speech2SQL | ICS 2 Project</p>
+    <p><a href="support.html">Documentation</a> | <a href="https://github.com/alphamunene/SPEECH-TO-SQL-LEVERAGING-SPEECH-TO-TEXT-ENCODERS-AND-R.A.G-FOR-SQL-QUERY-GENERATION/tree/feedback/.github">GitHub Repo</a> | <a href="file:///C:/xampp/htdocs/SPEECH2SQL_fixed_fixed/templates/support.html">Support</a></p>
+  </footer>
+
+  <script>
+
+document.addEventListener('DOMContentLoaded', () => {
+
+  // ==================== ELEMENT REFERENCES ====================
+  const sections = {
+    querySection: document.getElementById("querySection"),
+    dbSection: document.getElementById("dbSection"),
+    helpSection: document.getElementById("helpSection"),
+    historyPage: document.getElementById("historyPage")
+  };
+
+  const navLinks = {
+    navQuery: document.getElementById("navQuery"),
+    navDB: document.getElementById("navDB"),
+    navHelp: document.getElementById("navHelp"),
+    navHist: document.getElementById("navhist")
+  };
+
+  const tabs = {
+    tabQuery: document.getElementById("tabQuery"),
+    tabDB: document.getElementById("tabDB")
+  };
+
+  const queryBtn = document.getElementById("queryBtn");
+  const nlquery = document.getElementById("nlquery");
+  const sqlDisplay = document.getElementById("sql");
+  const generatedSQL = document.getElementById("generatedSQL");
+  const resultTable = $("#resultTable"); // jQuery DataTable reference
+  const summaryStats = document.getElementById("summaryStats");
+  const chartCanvas = document.getElementById("chart");
+  const pieCanvas = document.getElementById("pieChart");
+  const heatmapDiv = document.getElementById("heatmap");
+  const searchInput = document.getElementById("searchInput");
+  const sortSelect = document.getElementById("sortSelect");
+  const filterSelect = document.getElementById("filterSelect");
+  const filterValue = document.getElementById("filterValue");
+  const applyFilterBtn = document.getElementById("applyFilterBtn");
+  const exportCsvBtn = document.getElementById("exportCsvBtn");
+
+  let chartInstance = null;
+  let pieInstance = null;
+  let currentChartType = "bar";
+  let tableData = [];
+
+  // ==================== THEME ====================
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      themeToggle.textContent = document.body.classList.contains('dark-mode') ? '☀️ Light Mode' : '🌙 Dark Mode';
+    });
+  }
+
+  // ==================== SECTION NAVIGATION ====================
+  function showSection(sectionId) {
+    Object.values(sections).forEach(sec => { if(sec) sec.style.display = "none"; });
+    if(sections[sectionId]) sections[sectionId].style.display = "block";
+  }
+
+  if (navLinks.navQuery) navLinks.navQuery.addEventListener("click", () => showSection("querySection"));
+  if (navLinks.navDB) navLinks.navDB.addEventListener("click", () => showSection("dbSection"));
+  if (navLinks.navHelp) navLinks.navHelp.addEventListener("click", () => showSection("helpSection"));
+  if (navLinks.navHist) navLinks.navHist.addEventListener("click", () => { showSection("historyPage"); loadHistory(); });
+
+  if(tabs.tabQuery) tabs.tabQuery.addEventListener("click", ()=>{
+    showSection("querySection");
+    tabs.tabQuery.classList.add("active");
+    tabs.tabDB.classList.remove("active");
+  });
+
+  if(tabs.tabDB) tabs.tabDB.addEventListener("click", ()=>{
+    showSection("dbSection");
+    tabs.tabDB.classList.add("active");
+    tabs.tabQuery.classList.remove("active");
+  });
+
+  // ==================== SEND QUERY ====================
+  async function sendQuery(queryText){
+    if(!queryText.trim()) return alert("Please enter a query.");
+    try {
+      const resp = await fetch("/api/query_nl", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ query: queryText })
+      });
+      const data = await resp.json();
+      if(data.error) return alert(data.error);
+
+      if(sqlDisplay) sqlDisplay.textContent = data.sql || "";
+      if(generatedSQL) generatedSQL.textContent = data.sql || "";
+
+      tableData = data.rows || [];
+      updateResults(tableData);
+    } catch(e){ alert("Query failed: " + e.message); }
+  }
+
+  if(queryBtn) queryBtn.addEventListener("click", () => sendQuery(nlquery.value));
+
+  // ==================== MIC & AUDIO ====================
+  const micBtn = document.getElementById("micBtn");
+  const stopMicBtn = document.getElementById("stopMicBtn");
+  const micStatus = document.getElementById("micStatus");
+  const uploadBtn = document.getElementById("uploadBtn");
+  const audioFile = document.getElementById("audioFile");
+
+  let recognition = null;
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+
+  if (SpeechRec) {
+    recognition = new SpeechRec();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+
+    recognition.onstart = () => { if(micStatus) micStatus.textContent='🎤 Listening...'; if(micBtn) micBtn.disabled=true; if(stopMicBtn) stopMicBtn.disabled=false; };
+    recognition.onresult = (ev) => { if(nlquery) nlquery.value = Array.from(ev.results).map(r=>r[0].transcript).join(''); };
+    recognition.onerror = (ev) => { if(micStatus) micStatus.textContent = '⚠️ ' + (ev.error||'Speech error'); console.error(ev); };
+    recognition.onend = () => { if(micStatus) micStatus.textContent=''; if(micBtn) micBtn.disabled=false; if(stopMicBtn) stopMicBtn.disabled=true; };
+  } else if(micBtn && micStatus) { micBtn.disabled=true; micBtn.title='Speech recognition not supported'; micStatus.textContent='Speech recognition not supported.'; }
+
+  if(micBtn) micBtn.addEventListener("click", ()=>{ if(recognition) recognition.start(); else alert("Speech recognition not supported."); });
+  if(stopMicBtn) stopMicBtn.addEventListener("click", ()=>{ if(recognition) recognition.stop(); if(micStatus) { micStatus.textContent='⛔ Stopped.'; setTimeout(()=>{ if(micStatus.textContent==='⛔ Stopped.') micStatus.textContent=''; },1200); } });
+
+  if(uploadBtn) uploadBtn.addEventListener("click", async ()=>{
+    if(!audioFile.files[0]) return alert("Select an audio file.");
+    const fd = new FormData();
+    fd.append("file", audioFile.files[0]);
+    try {
+      const resp = await fetch("/api/upload_audio",{method:"POST",body:fd});
+      const data = await resp.json();
+      if(data.transcript){ if(nlquery) nlquery.value=data.transcript; sendQuery(data.transcript); }
+      else if(data.error) alert("Audio processing failed: "+data.error);
+    } catch(e){ alert("Upload error: "+e.message); }
+  });
+
+  // ==================== DATABASE ====================
+  const showDbOptionsBtn = document.getElementById("showDbOptionsBtn");
+  const dbOptions = document.getElementById("dbOptions");
+  if(showDbOptionsBtn) showDbOptionsBtn.addEventListener("click", ()=>{ if(dbOptions) dbOptions.style.display=dbOptions.style.display==="none"?"block":"none"; });
+
+  const uploadDbBtn = document.getElementById("uploadDbBtn");
+  const dbFile = document.getElementById("dbFile");
+  const dbStatus = document.getElementById("dbStatus");
+  if(uploadDbBtn) uploadDbBtn.addEventListener("click", async ()=>{
+    if(!dbFile.files[0]) return alert("Select DB file.");
+    const fd = new FormData(); fd.append("file", dbFile.files[0]);
+    try {
+      const resp = await fetch("/api/upload_db",{method:"POST",body:fd});
+      const data = await resp.json();
+      if(dbStatus) dbStatus.textContent = data.status || "DB uploaded.";
+    } catch(e){ if(dbStatus) dbStatus.textContent="Upload failed: "+e.message; }
+  });
+
+  const dbConn = document.getElementById("dbConn");
+  const connectDbBtn = document.getElementById("connectDbBtn");
+  if(connectDbBtn) connectDbBtn.addEventListener("click", async ()=>{
+    if(!dbConn.value.trim()) return alert("Enter DB connection string.");
+    if(dbStatus) dbStatus.textContent="🔄 Connecting...";
+    try {
+      const resp = await fetch("/api/connect_db",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ conn_str: dbConn.value.trim() })
+      });
+      const data = await resp.json();
+      if(dbStatus) dbStatus.textContent = resp.ok ? (data.message||"✅ Connected.") : (data.detail||"❌ Connection failed.");
+    } catch(e){ if(dbStatus) dbStatus.textContent="❌ Connection failed: "+e.message; }
+  });
+
+  const showTablesBtn = document.getElementById("showTablesBtn");
+  const tableList = document.getElementById("tableList");
+  if(showTablesBtn) showTablesBtn.addEventListener("click", async ()=>{
+    if(!tableList) return;
+    try {
+      const resp = await fetch("/api/show-tables");
+      const data = await resp.json();
+      if(data.tables && data.tables.length){
+        tableList.innerHTML = data.tables.map(t=>{
+          const th = `<tr>${t.columns.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+          const trs = t.rows ? t.rows.map(r=>`<tr>${t.columns.map(c=>`<td>${r[c]}</td>`).join('')}</tr>`).join('') : '';
+          return `<div style="margin-bottom:15px;"><strong>${t.table}</strong><br>${trs?`<table border="1" style="border-collapse:collapse;margin-bottom:10px;">${th}${trs}</table>`:"<em>No rows found.</em>"}</div>`;
+        }).join("");
+      } else tableList.textContent="No tables found.";
+    } catch(e){ tableList.textContent="Failed to fetch tables."; }
+  });
+
+  // ==================== HISTORY ====================
+  async function loadHistory(){
+    const tbody = document.getElementById("historyBody");
+    if(!tbody) return;
+    try {
+      const resp = await fetch("/api/history?page=1&limit=10");
+      const data = await resp.json();
+      tbody.innerHTML = "";
+      if(data.results && data.results.length){
+        data.results.forEach((h,i)=>{
+          tbody.insertAdjacentHTML("beforeend",`<tr><td>${i+1}</td><td>${h.query}</td><td>${h.created_at}</td></tr>`);
+        });
+      } else tbody.innerHTML=`<tr><td colspan="3">No history found.</td></tr>`;
+    } catch(e){ console.error("History load failed",e); }
+  }
+
+  // ==================== HELP ====================
+  const showHelpOptionsBtn = document.getElementById("showHelpOptionsBtn");
+  const helpOptions = document.getElementById("helpOptions");
+  if(showHelpOptionsBtn) showHelpOptionsBtn.addEventListener("click", ()=>{ if(helpOptions) helpOptions.style.display=helpOptions.style.display==="none"?"block":"none"; });
+
+  const helpSearch = document.getElementById("helpSearch");
+  if(helpSearch){
+    helpSearch.addEventListener("input",(e)=>{
+      const query = e.target.value.toLowerCase();
+      document.querySelectorAll("#helpAccordion .accordion-item").forEach(item=>{
+        item.style.display=item.textContent.toLowerCase().includes(query)?"block":"none";
+      });
+    });
+  }
+
+  // ==================== UPDATE RESULTS & CHARTS ====================
+  function updateResults(rows){
+    if(!rows || !rows.length){
+      if($.fn.DataTable.isDataTable("#resultTable")) resultTable.DataTable().clear().draw();
+      if(summaryStats) summaryStats.innerHTML="<p>No numeric data available.</p>";
+      if(chartCanvas){
+  if(chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(chartCanvas, {
+    type: 'bar',
+    data: { labels: [], datasets: [] },
+    options: {}
+  });
+}
+
+if(pieCanvas){
+  if(pieInstance) pieInstance.destroy();
+  pieInstance = new Chart(pieCanvas, {
+    type: 'pie',
+    data: { labels: [], datasets: [] },
+    options: {}
+  });
+}
+
+      if(heatmapDiv) heatmapDiv.innerHTML="<p>No correlation heatmap.</p>";
+      return;
+    }
+
+    tableData = rows;
+    const columns = Object.keys(rows[0]);
+
+    // Sort & Filter
+    if(sortSelect) sortSelect.innerHTML=`<option value="">Sort by</option>`+columns.map(c=>`<option value="${c}">${c}</option>`).join('');
+    if(filterSelect) filterSelect.innerHTML=`<option value="">Filter column</option>`+columns.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  // Destroy old table if exists
+if($.fn.DataTable.isDataTable("#resultTable")){
+    resultTable.DataTable().clear().destroy();
+}
+$("#resultTable").empty(); // ensure the table body is empty
+
+// Initialize new DataTable
+if(rows.length){
+    $("#resultTable").DataTable({
+        data: rows.map(r => columns.map(c => r[c])),
+        columns: columns.map(c => ({ title: c })),
+        responsive: true,
+        pageLength: 10
+    });
+
+    // ✅ Adjust columns if inside a collapsed div (#moreAnalytics)
+    if($("#moreAnalytics").is(":visible")){
+        $("#resultTable").DataTable().columns.adjust().draw();
+    } else {
+        // Listen for collapse show event to adjust columns
+        $("#moreAnalytics").off('shown.bs.collapse').on('shown.bs.collapse', function () {
+            $("#resultTable").DataTable().columns.adjust().draw();
+        });
+    }
+}
+  // DataTable
+    if($.fn.DataTable.isDataTable("#resultTable")){
+    resultTable.DataTable().clear().destroy();
+}
+$("#resultTable").empty(); // ensure the table body is empty
+$("#resultTable").DataTable({
+    data: rows.map(r=>columns.map(c=>r[c])),
+    columns: columns.map(c=>({title:c})),
+    responsive: true,
+    pageLength: 10
+});
+
+    // Summary Stats
+    const numericKeys = columns.filter(c=>typeof rows[0][c]==='number');
+    if(summaryStats){
+      if(numericKeys.length){
+        let html="<h5>Summary Statistics</h5>";
+        numericKeys.forEach(k=>{
+          const vals = rows.map(r=>r[k]);
+          const sum = vals.reduce((a,b)=>a+b,0);
+          html+=`<p><b>${k}</b> → Avg:${(sum/vals.length).toFixed(2)}, Min:${Math.min(...vals)}, Max:${Math.max(...vals)}</p>`;
+        });
+        summaryStats.innerHTML=html;
+      } else summaryStats.innerHTML="<p>No numeric data available.</p>";
+    }
+
+    // Charts
+    if(chartCanvas){
+      if(chartInstance) chartInstance.destroy();
+      chartInstance = new Chart(chartCanvas,{type:currentChartType, data:{labels:rows.map((_,i)=>`Row ${i+1}`), datasets:numericKeys.map(k=>({label:k,data:rows.map(r=>r[k]), backgroundColor:`rgba(${Math.random()*255},${Math.random()*255},${Math.random()*255},0.6)`}))}, options:{responsive:true}});
+    }
+    if(pieCanvas){
+      if(pieInstance) pieInstance.destroy();
+      if(numericKeys.length){
+        pieInstance = new Chart(pieCanvas,{type:'pie', data:{labels:rows.map((_,i)=>`Row ${i+1}`), datasets:[{label:numericKeys[0], data:rows.map(r=>r[numericKeys[0]]), backgroundColor: rows.map(()=>`rgba(${Math.random()*255},${Math.random()*255},${Math.random()*255},0.6)`) } ] }, options:{responsive:true}});
+      }
+    }
+
+    // Heatmap
+    if(heatmapDiv){
+      if(numericKeys.length>1){
+        const matrix = numericKeys.map(k1=>numericKeys.map(k2=>{
+          const vals1 = rows.map(r=>r[k1]); const vals2 = rows.map(r=>r[k2]);
+          const mean1 = vals1.reduce((a,b)=>a+b,0)/vals1.length;
+          const mean2 = vals2.reduce((a,b)=>a+b,0)/vals2.length;
+          const cov = vals1.map((v,i)=>(v-mean1)*(vals2[i]-mean2)).reduce((a,b)=>a+b,0)/(vals1.length-1);
+          const std1 = Math.sqrt(vals1.map(v=>(v-mean1)**2).reduce((a,b)=>a+b,0)/(vals1.length-1));
+          const std2 = Math.sqrt(vals2.map(v=>(v-mean2)**2).reduce((a,b)=>a+b,0)/(vals2.length-1));
+          return cov/(std1*std2);
+        }));
+        Plotly.newPlot(heatmapDiv,[{z:matrix,x:numericKeys,y:numericKeys,type:'heatmap',colorscale:'Viridis'}],{title:'Correlation Heatmap',height:400});
+      } else heatmapDiv.innerHTML="<p>No correlation heatmap (need ≥2 numeric columns)</p>";
+    }
+  }
+
+  // ==================== CHART TYPE BUTTONS ====================
+  const barChartBtn = document.getElementById("barChartBtn");
+  const lineChartBtn = document.getElementById("lineChartBtn");
+  const scatterChartBtn = document.getElementById("scatterChartBtn");
+  if(barChartBtn) barChartBtn.addEventListener("click", ()=>{currentChartType="bar"; updateResults(tableData);});
+  if(lineChartBtn) lineChartBtn.addEventListener("click", ()=>{currentChartType="line"; updateResults(tableData);});
+  if(scatterChartBtn) scatterChartBtn.addEventListener("click", ()=>{currentChartType="scatter"; updateResults(tableData);});
+
+  // ==================== FILTER & SEARCH ====================
+  if(applyFilterBtn){
+    applyFilterBtn.addEventListener("click", ()=>{
+      const col = filterSelect.value;
+      const val = filterValue.value.toLowerCase();
+      const filtered = col && val ? tableData.filter(r=>String(r[col]).toLowerCase().includes(val)) : tableData;
+      updateResults(filtered);
+    });
+  }
+  if(searchInput){
+    searchInput.addEventListener("input",(e)=>{ if($.fn.DataTable.isDataTable("#resultTable")) resultTable.DataTable().search(e.target.value).draw(); });
+  }
+
+  // ==================== EXPORT ====================
+  if(exportCsvBtn){
+    exportCsvBtn.addEventListener("click",()=>{
+      if(!tableData.length) return alert("No data to export.");
+      const columns = Object.keys(tableData[0]);
+      const csvContent = [columns.join(",")].concat(tableData.map(r=>columns.map(c=>`"${r[c]}"`).join(","))).join("\n");
+      const blob = new Blob([csvContent],{type:"text/csv;charset=utf-8;"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download","results.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
+}); 
+// ===== SCHEMA COLLAPSE =====
+const schemaCollapse = document.getElementById("schemaCollapse");
+const schemaContent  = document.getElementById("schemaContent");
+
+schemaCollapse.addEventListener("show.bs.collapse", async () => {
+  try {
+    const resp = await fetch("/api/view_schema");
+    const data = await resp.json();
+
+    let html = `
+      <div style="padding:10px; margin-bottom:15px; background:#eef6ff; border-left:4px solid #2a7ce9;">
+        <h4 style="margin-top:0;">📌 What is a Database Schema?</h4>
+        <p>
+          A <strong>database schema</strong> is a blueprint that defines how data is structured, stored, and related.
+          It includes:
+        </p>
+        <ul>
+          <li>Tables</li>
+          <li>Columns and data types</li>
+          <li>Primary keys</li>
+          <li>Foreign keys</li>
+          <li>Example records</li>
+        </ul>
+      </div>
+    `;
+
+    if (!data.schema || Object.keys(data.schema).length === 0) {
+      schemaContent.innerHTML = html + "<p>No schema available.</p>";
+      return;
+    }
+
+    html += `<h5>📂 Database Tables</h5>`;
+
+    for (const tableName in data.schema) {
+      const info = data.schema[tableName];
+
+      html += `
+        <div style="margin-bottom:15px; border:1px solid #ccc; padding:10px; border-radius:6px;">
+          <h6 style="margin-top:0;">📌 ${tableName}</h6>
+
+          <strong>Columns:</strong>
+          <ul>${info.columns.map(c => `<li>${c}</li>`).join("")}</ul>
+
+          <strong>Primary Keys:</strong>
+          <ul>${
+            info.primary_keys.length 
+              ? info.primary_keys.map(pk => `<li>${pk}</li>`).join("") 
+              : "<li>None</li>"
+          }</ul>
+
+          <strong>Foreign Keys:</strong>
+          <ul>${
+            info.foreign_keys.length 
+              ? info.foreign_keys.map(fk => `<li>${fk}</li>`).join("") 
+              : "<li>None</li>"
+          }</ul>
+
+          <strong>Sample Data (first 5 rows):</strong>
+      `;
+
+      if (info.example_rows && info.example_rows.length > 0) {
+        html += `
+          <table border="1" cellpadding="5" style="width:100%; margin-top:5px; border-collapse:collapse;">
+            <thead>
+              <tr>
+                ${Object.keys(info.example_rows[0]).map(col => `<th>${col}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${info.example_rows.map(row => `
+                <tr>${Object.values(row).map(val => `<td>${val}</td>`).join("")}</tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      } else {
+        html += `<p style="color:#666;">No sample rows found.</p>`;
+      }
+
+      html += `</div>`;
+    }
+
+    schemaContent.innerHTML = html;
+
+  } catch (e) {
+    schemaContent.innerHTML = `
+      <p style="color:red;">Failed to load schema: ${e.message}</p>
+    `;
+  }
+});
+const downloadHistoryBtn = document.getElementById("downloadHistoryBtn");
+const deleteHistoryBtn = document.getElementById("deleteHistoryBtn");
+
+if(downloadHistoryBtn){
+  downloadHistoryBtn.addEventListener("click", ()=>{
+    window.open("/api/history/download", "_blank");
+  });
+}
+
+if(deleteHistoryBtn){
+  deleteHistoryBtn.addEventListener("click", async ()=>{
+    if(!confirm("Are you sure you want to delete all history?")) return;
+    try {
+      const resp = await fetch("/api/history", { method: "DELETE" });
+      const data = await resp.json();
+      alert(data.status);
+      loadHistory();  // refresh table
+    } catch(e){ alert("Failed to delete history: " + e.message); }
+  });
+}
+
+
+</script>
+
+  
+</body>
+</html>
