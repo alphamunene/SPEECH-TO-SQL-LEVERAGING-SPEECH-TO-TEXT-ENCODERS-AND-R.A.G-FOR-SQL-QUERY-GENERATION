@@ -1,7 +1,6 @@
 
 ---
 
-````markdown
 # Speech2SQL 🚀
 
 Speech2SQL is a **FastAPI application** that allows you to query any database using **natural language** or **voice commands**. It integrates a **fine-tuned Seq2Seq LLM**, **RAG (Retrieval-Augmented Generation)**, and **Whisper** for speech-to-text transcription, enabling a **voice-driven SQL assistant**.  
