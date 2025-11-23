@@ -1,4 +1,3 @@
-Got it! I’ve created a **complete, all-in-one README.md** that explains your **Speech2SQL project with RAG**, includes **requirements**, installation, usage, endpoints, and a project overview—all in one file ready for GitHub.
 
 ---
 
