@@ -52,7 +52,7 @@ This ensures that generated SQL is **aware of actual table names and column name
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/<your_username>/Speech2SQL.git
+git clone https://github.com/alphamunene/SPEECH-TO-SQL-LEVERAGING-SPEECH-TO-TEXT-ENCODERS-AND-R.A.G-FOR-SQL-QUERY-GENERATION
 cd Speech2SQL
 ````
 
