@@ -15,7 +15,7 @@ It works with **SQLite, MySQL, and PostgreSQL** and supports multiple databases.
   Convert English queries into executable SQL automatically using a fine-tuned LLM.  
 
 - **Speech → SQL**  
-  Upload audio files and transcribe them into SQL queries using OpenAI Whisper.  
+  Upload audio files and transcribe them into SQL queries using  Whisper.  
 
 - **RAG-based schema retrieval**  
   Automatically extracts database schemas, embeds them with **Sentence Transformers**, and uses **FAISS** to retrieve relevant tables/columns for better query accuracy.  
