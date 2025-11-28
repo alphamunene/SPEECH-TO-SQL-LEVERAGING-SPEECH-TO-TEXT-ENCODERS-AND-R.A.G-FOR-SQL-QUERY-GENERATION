@@ -208,9 +208,7 @@ Speech2SQL/
 
 ---
 
-## License
 
-MIT License – see `LICENSE` file.
 
 ```
 
